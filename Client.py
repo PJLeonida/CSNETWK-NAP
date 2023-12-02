@@ -10,7 +10,7 @@ commanddesc = ["Connect to the server application", "Disconnect to the server ap
 def main():
     connected = False
     clientSocket = socket(AF_INET, SOCK_STREAM)
-
+    userconn = False
     while True:
         data = input("/ ")
         data = data.split(" ")
@@ -33,16 +33,37 @@ def main():
                 if not connected: # Displays error message if the Client is not connected to a Server
                     print("Error: Disconnection failed. Please connect to the server first.")
                 else:
+                    clientSocket.close()
                     break # Proceeds to Disconnect from the server
             elif command == "?": # Displays all commands
                 print("-COMMANDS-")
                 for cmd, desc in zip(commands, commanddesc):
                     print(cmd + " - " + desc)
                 print('\n')
+            elif command == "register":
+                if not connected: # Check if user is connected
+                    print("Error: Registration failed. Please connect to the server first.")
+                    continue
+                if len(data) != 2 or len(data) > 2: # Check if user inputted proper parameters
+                    raise SyntaxError("Invalid Parameters")
+                newUser = data[1] 
+                request = command + "@" + newUser
+
+                clientSocket.send(request.encode(FORMAT)) # Check if user handle is already used in server
+                response = clientSocket.recv(SIZE).decode(FORMAT)
+                response = response.split('@')
+
+                if response[1] == "Exists":  # User exists in server
+                    print("Error: Registration failed. Handle or alias already exists.")
+                    continue
+                
+                userconn = True
+                print("Hello, " + newUser + "!")
             else:
                 print("Error: Command not found.")
         except Exception:
             print("Error: Command parameters do not match or is not allowed.")
+
     print("Disconnected From Server...")
 
 if __name__ == "__main__":
