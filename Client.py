@@ -49,6 +49,25 @@ def main():
                 for cmd, desc in zip(commands, commanddesc):
                     print(cmd + " - " + desc)
                 print('\n')
+            elif command == "register":
+                if not connected: # Check if user is connected
+                    print("Error: Registration failed. Please connect to the server first.")
+                    continue
+                if len(data) != 2 or len(data) > 2: # Check if user inputted proper parameters
+                    raise SyntaxError("Invalid Parameters")
+                newUser = data[1] 
+                request = command + " " + newUser
+
+                clientSocket.send(request.encode(FORMAT)) # Check if user handle is already used in server
+                response = clientSocket.recv(SIZE).decode(FORMAT)
+                response = response.split('@')
+
+                if response[1] == "Exists":  # User exists in server
+                    print("Error: Registration failed. Handle or alias already exists.")
+                    continue
+                
+                userconn = True
+                print("Hello, " + newUser + "!")
             else:
                 print("Error: Command not found.")
         except Exception:
