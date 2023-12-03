@@ -37,7 +37,17 @@ def clientHandler(connSocket, addr):
             connSocket.send(fileString.encode(FORMAT))
             print(fileString)
 
-            
+         if cmd == "GET":
+            try:
+                filename = data[1]
+                filePath = os.path.join(SERVER_DATA_PATH, filename)
+                with open(filePath, "rb") as file:
+                    fileData = file.read()
+                    connSocket.sendall(fileData)
+                    print(f"{filename} sent to {addr}")
+                print(f"[FILE SENT] {filename} sent to {addr}")
+            except FileNotFoundError:
+                connSocket.send("FILE NOT FOUND".encode(FORMAT))   
 
 
 def main():
