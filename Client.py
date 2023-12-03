@@ -11,6 +11,26 @@ CLIENT_DATA_PATH = "Client Data"
 
 commands = ["join <server_ip_add> <port>", "leave", "register <handle>", "store <filename>", "dir", "get <filename>"]
 commanddesc = ["Connect to the server application", "Disconnect to the server application", "Register a unique handle or alias", "Send file to server", "Request directory file list from a server", "Fetch a file from a server"]
+
+def receiveFileFromServer(connSocket, filename):
+    try:
+        request = f"GET@{filename}"
+        connSocket.send(request.encode(FORMAT))
+
+        if not os.path.exists(CLIENT_DATA_PATH):
+            os.makedirs(CLIENT_DATA_PATH)
+        
+        filePath = os.path.join(CLIENT_DATA_PATH,filename)
+        with open(filePath, "wb") as file:
+            serverFile = connSocket.recv(SIZE)
+            if not serverFile.decode(FORMAT) == "FILE NOT FOUND":
+                file.write(serverFile)
+            else:
+                print(f"Error: File not found.")
+        print(f"File received from Server: {filename}")
+    except Exception as e:
+        print(f"Error: {e}")
+
 def main():
     connected = False
     clientSocket = socket(AF_INET, SOCK_STREAM)
@@ -38,6 +58,21 @@ def main():
                     print("Error: Disconnection failed. Please connect to the server first.")
                 else:
                     break # Proceeds to Disconnect from the server
+            elif command == "get":
+                if not connected:  # Displays an error message if the Client is not connected to a Server
+                    print("Error: Request failed. Please connect to the server first.")
+                else:
+                    filenameSeg = []
+                    filenameStart = False
+                    for name in data[1:]: # Allows spaces in filenames
+                        if not filenameStart:
+                            if name != "":
+                                filenameStart = True
+                                filenameSeg.append(name)
+                        else:
+                            filenameSeg.append(name)
+                    filename = " ".join(filenameSeg)
+                    receiveFileFromServer(clientSocket, filename)
             elif command == "dir":
                 clientSocket.send("dir".encode(FORMAT)) #Send Request of /dir
                 fileString = clientSocket.recv(SIZE).decode(FORMAT) #receive the 1 aggregated string of all file names
