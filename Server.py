@@ -6,7 +6,7 @@ SIZE = 1024
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "Server Data"
 
-def clientHandler(connSocket, addr):
+def clientHandler(connSocket, addr, users):
     print(f"[CONNECTED] Connection with {addr} established.")
     connSocket.send("OK$Welcome to the File Exchange Server".encode(FORMAT))
 
@@ -44,6 +44,7 @@ def main():
     serverIP = 'localhost'
     serverPort = 6969
     bind = (serverIP, serverPort)
+    users = []
 
     serverSocket = socket(AF_INET, SOCK_STREAM)
     serverSocket.bind(bind)
@@ -51,7 +52,7 @@ def main():
     print("Server is listening...")
     while True:
         connSocket, addr = serverSocket.accept()
-        thread = threading.Thread(target=clientHandler, args = (connSocket, addr))
+        thread = threading.Thread(target=clientHandler, args = (connSocket, addr, users))
         thread.start()
 
         
