@@ -1,5 +1,9 @@
+import array
+from importlib.metadata import files
 from socket import *
 import threading
+import os
+from urllib import request
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -34,6 +38,12 @@ def main():
                     print("Error: Disconnection failed. Please connect to the server first.")
                 else:
                     break # Proceeds to Disconnect from the server
+            elif command == "dir":
+                clientSocket.send("dir".encode(FORMAT)) #Send Request of /dir
+                fileString = clientSocket.recv(SIZE).decode(FORMAT) #receive the 1 aggregated string of all file names
+                filenames = fileString.split("@") #split aggreagated string 
+                for filename in filenames:
+                    print(filename) #print filenames
             elif command == "?": # Displays all commands
                 print("-COMMANDS-")
                 for cmd, desc in zip(commands, commanddesc):
