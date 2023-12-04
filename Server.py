@@ -2,6 +2,7 @@ from socket import *
 import threading
 import os
 import datetime 
+import pickle
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -14,7 +15,7 @@ def clientHandler(connSocket, addr, users):
 
     while True: 
         data = connSocket.recv(SIZE).decode(FORMAT)
-        data = data.split(" ")
+        data = data.split("@")
         command = data[0]
 
         if command == "register":
@@ -41,17 +42,27 @@ def clientHandler(connSocket, addr, users):
             print(fileString)
 
 
-          if command == "GET":
+        if command == "get":
+            filename = data[1]
+            filePath = os.path.join(SERVER_DATA_PATH, filename)
             try:
-                filename = data[1]
-                filePath = os.path.join(SERVER_DATA_PATH, filename)
-                with open(filePath, "rb") as file:
-                    fileData = file.read()
-                    connSocket.sendall(fileData)
-                    print(f"{filename} sent to {addr}")
-                print(f"[FILE SENT] {filename} sent to {addr}")
-            except FileNotFoundError:
-                connSocket.send("FILE NOT FOUND".encode(FORMAT))   
+                if os.path.exists(filePath):
+                    connSocket.send("OK".encode(FORMAT))
+                    print(f"[GET REQUEST] {reg_user} +  is requesting to get {filename}")
+                else:
+                    connSocket.send("FILE NOT FOUND.".encode(FORMAT))
+                if connSocket.recv(1024).decode() == "OK":
+                    with open(filePath, "rb") as file:
+                        fileData = file.read()
+                        connSocket.sendall(fileData)
+                    timedate = datetime.datetime.now()
+                    date = timedate.strftime("%x")
+                    time = timedate.strftime("%X")
+                    print(reg_user + " (" + date + " " + time + "): Received " + filename)
+            except Exception as e:
+                connSocket.send("ERROR".encode(FORMAT))
+                print(f"Error: {e}")    
+
 
         if command == "store":
             filename = data[1]
