@@ -1,14 +1,16 @@
 from socket import *
 import threading
 import os
+import datetime 
 
 SIZE = 1024
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "Server Data"
 
-def clientHandler(connSocket, addr):
+def clientHandler(connSocket, addr, users):
     print(f"[CONNECTED] Connection with {addr} established.")
     connSocket.send("OK$Welcome to the File Exchange Server".encode(FORMAT))
+    reg_user = ""
 
     while True: 
         data = connSocket.recv(SIZE).decode(FORMAT)
@@ -23,7 +25,8 @@ def clientHandler(connSocket, addr):
                 response += "Exists"
                 connSocket.send(response.encode(FORMAT))
                 continue
-
+            
+            reg_user = newUser
             users.append(newUser) # Append user to list of registered users
             response += "DNE"
             connSocket.send(response.encode(FORMAT))
@@ -37,7 +40,8 @@ def clientHandler(connSocket, addr):
             connSocket.send(fileString.encode(FORMAT))
             print(fileString)
 
-         if cmd == "GET":
+
+          if command == "GET":
             try:
                 filename = data[1]
                 filePath = os.path.join(SERVER_DATA_PATH, filename)
@@ -49,11 +53,44 @@ def clientHandler(connSocket, addr):
             except FileNotFoundError:
                 connSocket.send("FILE NOT FOUND".encode(FORMAT))   
 
+        if command == "store":
+            filename = data[1]
+            if not os.path.exists(SERVER_DATA_PATH):
+                os.makedirs(SERVER_DATA_PATH)
+
+            try:
+                filePath = os.path.join(SERVER_DATA_PATH,filename)
+                with open(filePath, "wb") as file: # Write to file
+                    request_file = connSocket.recv(1024)
+                    file_data = request_file.decode(FORMAT)
+                    if not request_file.decode(FORMAT) == "FILE NOT FOUND":
+                        file.write(request_file)
+                        error = False
+                    else:
+                        print(f"Error: file not found.")
+                        error = True
+
+                if error: # If error send Error response status
+                    response = "ERROR@File not found"
+                    connSocket.send(response.encode(FORMAT))
+                    continue
+                
+                # If success send success reponse to client
+                timedate = datetime.datetime.now()
+                date = timedate.strftime("%x")
+                time = timedate.strftime("%X")
+                response = "OK@" + reg_user + " (" + date + " " + time + "): Uploaded " + filename
+                print(reg_user + " (" + date + " " + time + "): Uploaded " + filename)
+                connSocket.send(response.encode(FORMAT))
+            except Exception as e:
+                print(f"Error: ", e)
+
 
 def main():
     serverIP = 'localhost'
     serverPort = 6969
     bind = (serverIP, serverPort)
+    users = []
 
     serverSocket = socket(AF_INET, SOCK_STREAM)
     serverSocket.bind(bind)
@@ -61,7 +98,7 @@ def main():
     print("Server is listening...")
     while True:
         connSocket, addr = serverSocket.accept()
-        thread = threading.Thread(target=clientHandler, args = (connSocket, addr))
+        thread = threading.Thread(target=clientHandler, args = (connSocket, addr, users))
         thread.start()
 
         

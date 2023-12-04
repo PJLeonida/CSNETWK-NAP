@@ -32,8 +32,9 @@ def receiveFileFromServer(connSocket, filename):
         print(f"Error: {e}")
 
 def main():
-    connected = False
+    connected = False # User joined server connection
     clientSocket = socket(AF_INET, SOCK_STREAM)
+    userconn = False # User is registered
 
     while True:
         data = input("/ ")
@@ -88,7 +89,7 @@ def main():
                 if not connected: # Check if user is connected
                     print("Error: Registration failed. Please connect to the server first.")
                     continue
-                if len(data) != 2 or len(data) > 2: # Check if user inputted proper parameters
+                if len(data) != 2: # Check if user inputted proper parameters
                     raise SyntaxError("Invalid Parameters")
                 newUser = data[1] 
                 request = command + " " + newUser
@@ -103,11 +104,48 @@ def main():
                 
                 userconn = True
                 print("Hello, " + newUser + "!")
+
+            elif command == "store":
+                if not connected: # User has not joined
+                    print("Error: Store failed. Please connect to the server.")
+                    continue
+                elif not userconn: # User has not registered
+                    print("Error: Store failed. Register a user before proceeding.")
+                    continue
+
+                if len(data) != 2: # Check if user inputted proper parameters
+                    raise SyntaxError("Invalid Parameters")
+                
+                try: # Check if file Exists. If not, send error
+                    filename = data[1]
+                    filePath = os.path.join(CLIENT_DATA_PATH, filename)
+                    request = command + " " + filename
+                    clientSocket.send(request.encode(FORMAT))
+
+                    with open(filePath, "rb") as file: # Open and Read file
+                        fileData = file.read() 
+                    clientSocket.sendall(fileData) # Send file to server
+
+                    response = clientSocket.recv(SIZE).decode(FORMAT) # Get response
+                    response = response.split('@')
+
+                    if response[0] != "OK": # Server error
+                        print("Error: Failed to send to server.")
+                        continue
+
+                    print(response[1])
+                except FileNotFoundError: 
+                    print("Error: File does not exists in Client Data folder")
+                    continue
             else:
                 print("Error: Command not found.")
         except Exception:
             print("Error: Command parameters do not match or is not allowed.")
+    clientSocket.close()
     print("Disconnected From Server...")
+
+
+
 
 if __name__ == "__main__":
     main()
