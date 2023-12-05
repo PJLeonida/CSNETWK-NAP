@@ -74,12 +74,15 @@ def main():
                             filenameSeg.append(name)
                     filename = " ".join(filenameSeg)
                     receiveFileFromServer(clientSocket, filename)
-            elif command == "dir":
-                clientSocket.send("dir".encode(FORMAT)) #Send Request of /dir
-                fileString = clientSocket.recv(SIZE).decode(FORMAT) #receive the 1 aggregated string of all file names
-                filenames = fileString.split("@") #split aggreagated string 
-                for filename in filenames:
-                    print(filename) #print filenames
+             elif command == "dir":
+                if not connected:
+                    print("Error: Request failed. Please connect to the server first.")
+                else:
+                    clientSocket.send("dir".encode(FORMAT)) #Send Request of /dir
+                    fileString = clientSocket.recv(SIZE).decode(FORMAT) #receive the 1 aggregated string of all file names
+                    filenames = fileString.split("@") #split aggreagated string 
+                    for filename in filenames:
+                        print(filename) #print filenames
             elif command == "?": # Displays all commands
                 print("-COMMANDS-")
                 for cmd, desc in zip(commands, commanddesc):
