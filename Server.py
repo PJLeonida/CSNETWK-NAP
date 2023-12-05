@@ -39,7 +39,6 @@ def clientHandler(connSocket, addr, users):
                 print(filename)
                 fileString += filename + "@"
             connSocket.send(fileString.encode(FORMAT))
-            print(fileString)
 
 
         if command == "get":
@@ -48,15 +47,15 @@ def clientHandler(connSocket, addr, users):
             try:
                 if os.path.exists(filePath):
                     connSocket.send("OK".encode(FORMAT))
-                    print(f"[GET REQUEST] {reg_user} +  is requesting to get {filename}")
+                    print(f"[GET REQUEST] {reg_user}" +  "is requesting to get {filename}")
 
                     with open(filePath, "rb") as file:
                         fileData = file.read()
-                        connSocket.sendall(fileData)
-                        timedate = datetime.datetime.now()
-                        date = timedate.strftime("%x")
-                        time = timedate.strftime("%X")
-                        print(reg_user + " (" + date + " " + time + "): Received " + filename)
+                    connSocket.sendall(fileData)
+                    timedate = datetime.datetime.now()
+                    date = timedate.strftime("%x")
+                    time = timedate.strftime("%X")
+                    print(reg_user + " (" + date + " " + time + "): Received " + filename)
                 else:
                     connSocket.send("FILE NOT FOUND.".encode(FORMAT))
             except Exception as e:

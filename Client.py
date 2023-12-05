@@ -23,21 +23,17 @@ commanddesc = ["Connect to the server application", "Disconnect to the server ap
 
 def receiveFileInThread(clientSocket, filename):
     try:
-        request = "get@"+filename
-        clientSocket.send(request.encode(FORMAT))
-        response = clientSocket.recv(SIZE).decode()
-
+        request = "get@"+filename # Send get Request
+        clientSocket.send(request.encode(FORMAT)) # get Response
+        response = clientSocket.recv(SIZE).decode(FORMAT)
         if response == "OK":
             if not os.path.exists(client_data_path):
                 os.makedirs(client_data_path)
 
             filePath = os.path.join(client_data_path, filename)
             with open(filePath, "wb") as receivedFile:
-                while True:
-                    fileData = clientSocket.recv(SIZE)
-                    if not fileData:
-                        break
-                    receivedFile.write(fileData)
+                fileData = clientSocket.recv(SIZE)
+                receivedFile.write(fileData)
             output_box.insert(tk.END,f"File received from server: {filename}")
         else:
             output_box.insert(tk.END,"Error: File not found.")
@@ -76,6 +72,8 @@ def send_command(event):
             else:
                 output_box.insert(tk.END, "Disconnected From Server...")
                 clientSocket.close() # Proceeds to Disconnect from the server
+                root.destroy()
+                return
         if command == "get":
             commandistrue = True
             if not connected:  # Displays an error message if the Client is not connected to a Server
@@ -100,6 +98,14 @@ def send_command(event):
                     print("Error: " + e)
         if command == "dir":
             commandistrue = True
+            if not connected: # User has not joined
+                output_box.insert(tk.END,"Error: Store failed. Please connect to the server.")
+                command_entry.delete(0, tk.END)
+                return
+            elif not userconn: # User has not registered
+                output_box.insert(tk.END,"Error: Store failed. Register a user before proceeding.")
+                command_entry.delete(0, tk.END)
+                return
             clientSocket.send("dir".encode(FORMAT)) #Send Request of /dir
             fileString = clientSocket.recv(SIZE).decode(FORMAT) #receive the 1 aggregated string of all file names
             filenames = fileString.split("@") #split aggreagated string 
@@ -132,6 +138,8 @@ def send_command(event):
             userconn = True
             client_data_path = newUser + " Data"
             output_box.insert(tk.END,"Hello, " + newUser + "!")
+            if not os.path.exists(client_data_path):
+                os.makedirs(client_data_path)
 
         if command == "store":
             commandistrue = True
