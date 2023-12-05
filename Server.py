@@ -2,7 +2,7 @@ from socket import *
 import threading
 import os
 import datetime 
-import pickle
+import time
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -49,16 +49,16 @@ def clientHandler(connSocket, addr, users):
                 if os.path.exists(filePath):
                     connSocket.send("OK".encode(FORMAT))
                     print(f"[GET REQUEST] {reg_user} +  is requesting to get {filename}")
-                else:
-                    connSocket.send("FILE NOT FOUND.".encode(FORMAT))
-                if connSocket.recv(1024).decode() == "OK":
+
                     with open(filePath, "rb") as file:
                         fileData = file.read()
                         connSocket.sendall(fileData)
-                    timedate = datetime.datetime.now()
-                    date = timedate.strftime("%x")
-                    time = timedate.strftime("%X")
-                    print(reg_user + " (" + date + " " + time + "): Received " + filename)
+                        timedate = datetime.datetime.now()
+                        date = timedate.strftime("%x")
+                        time = timedate.strftime("%X")
+                        print(reg_user + " (" + date + " " + time + "): Received " + filename)
+                else:
+                    connSocket.send("FILE NOT FOUND.".encode(FORMAT))
             except Exception as e:
                 connSocket.send("ERROR".encode(FORMAT))
                 print(f"Error: {e}")    
