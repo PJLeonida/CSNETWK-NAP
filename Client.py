@@ -1,8 +1,8 @@
-import array
 from importlib.metadata import files
 from socket import *
 import threading
 import os
+import traceback
 from urllib import request
 
 import tkinter as tk
@@ -15,13 +15,38 @@ userconn = False # User is registered
 
 SIZE = 1024
 FORMAT = "utf-8"
-CLIENT_DATA_PATH = "Client Data"
+client_data_path = "Client Data"
 
 commands = ["join <server_ip_add> <port>", "leave", "register <handle>", "store <filename>", "dir", "get <filename>"]
 commanddesc = ["Connect to the server application", "Disconnect to the server application", "Register a unique handle or alias", "Send file to server", "Request directory file list from a server", "Fetch a file from a server"]
 
+
+def receiveFileInThread(clientSocket, filename):
+    try:
+        request = "get@"+filename
+        clientSocket.send(request.encode(FORMAT))
+        response = clientSocket.recv(SIZE).decode()
+
+        if response == "OK":
+            if not os.path.exists(client_data_path):
+                os.makedirs(client_data_path)
+
+            filePath = os.path.join(client_data_path, filename)
+            with open(filePath, "wb") as receivedFile:
+                while True:
+                    fileData = clientSocket.recv(SIZE)
+                    if not fileData:
+                        break
+                    receivedFile.write(fileData)
+            output_box.insert(tk.END,f"File received from server: {filename}")
+        else:
+            output_box.insert(tk.END,"Error: File not found.")
+    except Exception as e:
+        print(f"Error: {e}")
+        traceback.print_exc()
+
 def send_command(event):
-    global connected, clientSocket, userconn
+    global connected, clientSocket, userconn, client_data_path
 
     output_box.delete(1.0, tk.END) # Clears the message output field each time a command is executed
     
@@ -69,19 +94,8 @@ def send_command(event):
                         else:
                             filenameSeg.append(name)
                     filename = " ".join(filenameSeg)
-                    request = "get@"+filename
-                    clientSocket.send(request.encode(FORMAT))
-                    if clientSocket.recv(SIZE).decode() == "OK":
-                        if not os.path.exists(CLIENT_DATA_PATH):
-                            os.makedirs(CLIENT_DATA_PATH)
-                        clientSocket.send("OK".encode(FORMAT))
-                        filepath = os.path.join(CLIENT_DATA_PATH, filename)
-                        fileData = clientSocket.recv(SIZE)
-                        with open(filepath, "wb") as receivedFile:
-                            receivedFile.write(fileData)
-                        output_box.insert(tk.END,f"File received from server: {filename}")
-                    else:
-                        output_box.insert(tk.END,"Error: File not found.")
+                    file_thread = threading.Thread(target=receiveFileInThread, args=(clientSocket, filename))
+                    file_thread.start()
                 except Exception as e:
                     print("Error: " + e)
         if command == "dir":
@@ -116,6 +130,7 @@ def send_command(event):
                 return
             
             userconn = True
+            client_data_path = newUser + " Data"
             output_box.insert(tk.END,"Hello, " + newUser + "!")
 
         if command == "store":
@@ -134,7 +149,7 @@ def send_command(event):
             
             try: # Check if file Exists. If not, send error
                 filename = data[1]
-                filePath = os.path.join(CLIENT_DATA_PATH, filename)
+                filePath = os.path.join(client_data_path, filename)
                 request = command + "@" + filename
                 clientSocket.send(request.encode(FORMAT))
 
